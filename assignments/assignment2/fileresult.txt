@@ -1,0 +1,3 @@
+minhtt32@MyUbuntu:~/Desktop/MinhTT32/LinuxProgramming/assignment-1-Minmin20112/finder-app$ file writer.o
+writer.o: ELF 64-bit LSB relocatable, ARM aarch64, version 1 (SYSV), not stripped
+
