@@ -10,31 +10,30 @@ KERNEL_REPO=git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.gi
 KERNEL_VERSION=v5.15.163
 BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
+REPO_ROOT=$(realpath ${FINDER_APP_DIR}/../..)  # Assuming script is in assignment-3.../test/
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
 
 if [ $# -lt 1 ]
 then
-	echo "Using default directory ${OUTDIR} for output"
+    echo "Using default directory ${OUTDIR} for output"
 else
-	OUTDIR=$1
-	echo "Using passed directory ${OUTDIR} for output"
+    OUTDIR=$1
+    echo "Using passed directory ${OUTDIR} for output"
 fi
 
 mkdir -p ${OUTDIR}
 
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/linux-stable" ]; then
-    #Clone only if the repository does not exist.
-	echo "CLONING GIT LINUX STABLE VERSION ${KERNEL_VERSION} IN ${OUTDIR}"
-	git clone ${KERNEL_REPO} --depth 1 --single-branch --branch ${KERNEL_VERSION}
+    echo "CLONING GIT LINUX STABLE VERSION ${KERNEL_VERSION} IN ${OUTDIR}"
+    git clone ${KERNEL_REPO} --depth 1 --single-branch --branch ${KERNEL_VERSION}
 fi
 if [ ! -e ${OUTDIR}/linux-stable/arch/${ARCH}/boot/Image ]; then
     cd linux-stable
     echo "Checking out version ${KERNEL_VERSION}"
     git checkout ${KERNEL_VERSION}
 
-    # TODO: Add your kernel build steps here
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} mrproper
     make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} defconfig
     make -j4 ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE} all
@@ -49,11 +48,10 @@ echo "Creating the staging directory for the root filesystem"
 cd "$OUTDIR"
 if [ -d "${OUTDIR}/rootfs" ]
 then
-	echo "Deleting rootfs directory at ${OUTDIR}/rootfs and starting over"
-    sudo rm  -rf ${OUTDIR}/rootfs
+    echo "Deleting rootfs directory at ${OUTDIR}/rootfs and starting over"
+    sudo rm -rf ${OUTDIR}/rootfs
 fi
 
-# TODO: Create necessary base directories
 mkdir -p bin dev etc home lib lib64 proc sbin sys tmp usr var
 mkdir -p usr/bin usr/lib usr/sbin
 mkdir -p var/log
@@ -61,16 +59,14 @@ mkdir -p var/log
 cd "$OUTDIR"
 if [ ! -d "${OUTDIR}/busybox" ]
 then
-git clone git://busybox.net/busybox.git
+    git clone git://busybox.net/busybox.git
     cd busybox
     git checkout ${BUSYBOX_VERSION}
-    # TODO:  Configure busybox
     sudo chown root:root ${OUTDIR}/busybox
 else
     cd busybox
 fi
 
-# TODO: Make and install busybox
 make distclean
 make defconfig
 make ARCH=${ARCH} CROSS_COMPILE=${CROSS_COMPILE}
@@ -80,39 +76,35 @@ echo "Library dependencies"
 ${CROSS_COMPILE}readelf -a ${OUTDIR}/rootfs/bin/busybox | grep "program interpreter"
 ${CROSS_COMPILE}readelf -a ${OUTDIR}/rootfs/bin/busybox | grep "Shared library"
 
-# TODO: Add library dependencies to rootfs
 SYSROOT=$(${CROSS_COMPILE}gcc -print-sysroot)
 
-# Create target lib directories
 mkdir -p ${OUTDIR}/rootfs/lib ${OUTDIR}/rootfs/lib64
 
-# Copy interpreter
 cp -a ${SYSROOT}/lib/ld-linux-aarch64.so.1 ${OUTDIR}/rootfs/lib
-
-# Copy shared libraries
 for lib in libm.so.6 libresolv.so.2 libc.so.6; do
     cp -a ${SYSROOT}/lib64/$lib ${OUTDIR}/rootfs/lib64
 done
 
 mkdir -p ${OUTDIR}/rootfs/dev
-# TODO: Make device nodes
 sudo mknod -m 666 ${OUTDIR}/rootfs/dev/null c 1 3
 sudo mknod -m 600 ${OUTDIR}/rootfs/dev/console c 5 1
-# TODO: Clean and build the writer utility
-cd /home/minhtt32/Desktop/MinhTT32/LinuxProgramming/assignment-1-Minmin20112/finder-app/
+
+# Clean and build the writer utility
+cd ${REPO_ROOT}/finder-app/
 make clean
 make CROSS_COMPILE=${CROSS_COMPILE}
-# TODO: Copy the finder related scripts and executables to the /home directory
-# on the target rootfs
-mkdir ${OUTDIR}/rootfs/home
-cp -a /home/minhtt32/Desktop/MinhTT32/LinuxProgramming/assignment-1-Minmin20112/finder-app/writer ${OUTDIR}/rootfs/home
-cp -a /home/minhtt32/Desktop/MinhTT32/LinuxProgramming/assignment-1-Minmin20112/finder-app/finder.sh ${OUTDIR}/rootfs/home
-cp -a /home/minhtt32/Desktop/MinhTT32/LinuxProgramming/assignment-1-Minmin20112/finder-app/finder-test.sh ${OUTDIR}/rootfs/home
-cp -a /home/minhtt32/Desktop/MinhTT32/LinuxProgramming/assignment-1-Minmin20112/finder-app/autorun-qemu.sh ${OUTDIR}/rootfs/home
-cp -r "/home/minhtt32/Desktop/MinhTT32/LinuxProgramming/assignment-1-Minmin20112/conf" "${OUTDIR}/rootfs/home/"
-# TODO: Chown the root directory
+
+# Copy finder app scripts and binaries to rootfs
+mkdir -p ${OUTDIR}/rootfs/home
+cp -a ${REPO_ROOT}/finder-app/writer ${OUTDIR}/rootfs/home
+cp -a ${REPO_ROOT}/finder-app/finder.sh ${OUTDIR}/rootfs/home
+cp -a ${REPO_ROOT}/finder-app/finder-test.sh ${OUTDIR}/rootfs/home
+cp -a ${REPO_ROOT}/finder-app/autorun-qemu.sh ${OUTDIR}/rootfs/home
+cp -r ${REPO_ROOT}/conf ${OUTDIR}/rootfs/home/
+
 sudo chown -R root:root ${OUTDIR}/rootfs
-# TODO: Create initramfs.cpio.gz
+
 cd "${OUTDIR}/rootfs"
 find . | cpio -H newc -ov --owner root:root > ${OUTDIR}/initramfs.cpio
 gzip -f ${OUTDIR}/initramfs.cpio
+
