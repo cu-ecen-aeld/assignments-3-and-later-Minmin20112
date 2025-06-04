@@ -10,9 +10,14 @@ KERNEL_REPO=git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.gi
 KERNEL_VERSION=v5.15.163
 BUSYBOX_VERSION=1_33_1
 FINDER_APP_DIR=$(realpath $(dirname $0))
-REPO_ROOT=$(realpath ${FINDER_APP_DIR}/../..)  # Assuming script is in assignment-3.../test/
+REPO_ROOT=$(realpath ${FINDER_APP_DIR}/..)  # Assuming script is in assignment-3.../test/
 ARCH=arm64
 CROSS_COMPILE=aarch64-none-linux-gnu-
+
+# ✅ Add debug logs to verify correct path
+echo "FINDER_APP_DIR=${FINDER_APP_DIR}"
+echo "REPO_ROOT=${REPO_ROOT}"
+
 
 if [ $# -lt 1 ]
 then
